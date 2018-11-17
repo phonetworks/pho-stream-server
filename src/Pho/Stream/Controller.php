@@ -4,9 +4,14 @@ namespace Pho\Stream;
 
 class Server
 {
+    /**
+     * Returns the given URL
+     *
+     * @url GET /
+     */
     public function get()
     {
-
+        
     }
 
     public function addActivity()
