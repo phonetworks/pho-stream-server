@@ -11,7 +11,7 @@ class Server
      */
     public function get()
     {
-        
+
     }
 
     public function addActivity()
@@ -22,5 +22,10 @@ class Server
         // text
 
         // XADD stream * actor X verb Y object Z text M
+    }
+
+    public function follow()
+    {
+        
     }
 }
