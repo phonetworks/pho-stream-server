@@ -1,5 +1,20 @@
 {
+    "autoload": {
+        "files": [
+            "src/functions.php"
+        ],
+        "psr-4": {
+            "Pho\\Stream\\": "src/Pho/Stream/"
+        }
+    },
     "require": {
-        "jacwright/restserver": "dev-master"
+        "php": ">=7.0",
+        "predis/predis": "^1.1",
+        "vlucas/phpdotenv": "^2.5",
+        "nikic/fast-route": "^1.3",
+        "northwoods/config": "^2.0",
+        "php-di/php-di": "^6.0",
+        "zendframework/zend-diactoros": "^1.8",
+        "shrikeh/teapot": "^2.3"
     }
 }
