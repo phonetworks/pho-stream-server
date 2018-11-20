@@ -44,10 +44,9 @@ class RequestHandler
 
                 case Dispatcher::METHOD_NOT_ALLOWED:
                     $response = $container->call(function (ServerRequestInterface $request, ResponseInterface $response) {
-                        $response = $response->withStatus(StatusCode::METHOD_NOT_ALLOWED);
-                        $response->getBody()->write([
+                        $response = new JsonResponse([
                             'message' => 'Method Not Allowed',
-                        ]);
+                        ], StatusCode::METHOD_NOT_ALLOWED);
                         return $response;
                     });
                     break;
@@ -57,7 +56,7 @@ class RequestHandler
                     $vars = $routeInfo[2];
 
                     if ($handler instanceof \Closure) {
-                        $response = $container->call($handler);
+                        $response = $container->call($handler, $vars);
                     }
                     elseif (is_string($handler)) {
                         list($className, $method) = explode('@', $handler);
@@ -76,10 +75,10 @@ class RequestHandler
                             if (! is_callable($controller)) {
                                 throw new AppException("{$fullClassName} is not a callable");
                             }
-                            $response = $controller();
+                            $response = $container->call($controller, $vars);
                         }
                         else {
-                            $response = $container->call([ $controller, $method ]);
+                            $response = $container->call([ $controller, $method ], $vars);
                         }
                     }
                     else {
@@ -94,6 +93,10 @@ class RequestHandler
         catch (\Exception $ex) {
             $handler = $container->get(ExceptionHandler::class);
             $response = $container->call([ $handler, 'handle' ], [ $ex ]);
+        }
+
+        if (! $response instanceof ResponseInterface) {
+            $response = new JsonResponse('', StatusCode::NO_CONTENT);
         }
 
         return $response;

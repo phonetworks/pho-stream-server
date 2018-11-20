@@ -11,8 +11,7 @@ class ExceptionHandler
     {
         $response = new JsonResponse([
             'message' => (string) $ex,
-        ]);
-        $response = $response->withStatus(StatusCode::INTERNAL_SERVER_ERROR);
+        ], StatusCode::INTERNAL_SERVER_ERROR);
 
         return $response;
     }
