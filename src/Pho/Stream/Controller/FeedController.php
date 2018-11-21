@@ -46,12 +46,42 @@ class FeedController
             'actor' => $actor,
             'verb' => $verb,
             'object' => $object,
+            'text' => $text,
         ];
 
         return new JsonResponse($res);
     }
 
-    public function get($user_id, ServerRequestInterface $request)
+    public function follow($user_id, ServerRequestInterface $request)
+    {
+        $queryParams = $request->getQueryParams();
+
+        $validator = new Validator();
+        $validation = $validator->validate($queryParams, [
+            'target' => "required|not_in:user_{$user_id}",
+        ]);
+
+        if ($validation->fails()) {
+            $errors = $validation->errors();
+            return new JsonResponse($errors->toArray(), StatusCode::BAD_REQUEST);
+        }
+
+        $target = $queryParams['target'];
+
+        if (! $this->feedModel->feedExists($target)) {
+            return new JsonResponse([
+                'target' => "Invalid target {$target}",
+            ], StatusCode::BAD_REQUEST);
+        }
+
+        $ret = $this->feedModel->follow($user_id, $target);
+
+        return new JsonResponse([
+            'success' => boolval($ret),
+        ]);
+    }
+
+    public function getUser($user_id, ServerRequestInterface $request)
     {
         $queryParams = $request->getQueryParams();
 
@@ -72,7 +102,7 @@ class FeedController
             $validation = $validator->validate([
                 'count' => $count,
             ], [
-                'count' => 'min:1|max:10',
+                'count' => 'min:1|max:100',
             ]);
 
             if ($validation->fails()) {
@@ -80,10 +110,10 @@ class FeedController
                 return new JsonResponse($errors->toArray(), StatusCode::BAD_REQUEST);
             }
 
-            $feed = $this->feedModel->get($user_id, $count);
+            $feed = $this->feedModel->getUser($user_id, $count);
         }
         else {
-            $feed = $this->feedModel->get($user_id);
+            $feed = $this->feedModel->getUser($user_id);
         }
 
         if (is_null($feed)) {
@@ -92,20 +122,19 @@ class FeedController
             ], StatusCode::NOT_FOUND);
         }
 
-        $results = array_map(function ($item) {
-            return [
-                'id' => $item[0],
-                'actor' => $item[1][array_search('actor', $item[1]) + 1],
-                'verb' => $item[1][array_search('verb', $item[1]) + 1],
-                'object' => $item[1][array_search('object', $item[1]) + 1],
-                'text' => $item[1][array_search('text', $item[1]) + 1],
-            ];
-        }, $feed[0][1]);
-
         $res = [
-            'results' => $results,
+            'results' => $feed,
         ];
 
         return new JsonResponse($res);
+    }
+
+    public function getTimeline($user_id, ServerRequestInterface $request)
+    {
+        $feed = $this->feedModel->getTimeline($user_id);
+
+        return new JsonResponse([
+            'results' => $feed,
+        ]);
     }
 }

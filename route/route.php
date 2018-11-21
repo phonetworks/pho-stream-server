@@ -8,5 +8,9 @@ return function (RouteCollector $r) {
 
     $r->post('/feed/user/{user_id}', 'FeedController@addActivity');
 
-    $r->get('/feed/user/{user_id}', 'FeedController@get');
+    $r->post('/feed/user/{user_id}/follows', 'FeedController@follow');
+
+    $r->get('/feed/user/{user_id}', 'FeedController@getUser');
+
+    $r->get('/feed/timeline/{user_id}', 'FeedController@getTimeline');
 };
