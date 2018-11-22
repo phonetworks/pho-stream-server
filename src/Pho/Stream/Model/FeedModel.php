@@ -18,12 +18,20 @@ class FeedModel
 
     public function addActivity($userId, $actor, $verb, $object, $text)
     {
-        return $this->redisCommand->xadd("user_{$userId}", '*', [
+        $activityData = [
             'actor' => $actor,
             'verb' => $verb,
             'object' => $object,
             'text' => $text,
-        ]);
+        ];
+        $id = $this->redisCommand->xadd("user_{$userId}", '*', $activityData);
+
+        $followers = $this->client->smembers("follower_user_{$userId}");
+        foreach ($followers as $follower) {
+            $this->redisCommand->xadd($follower, $id, $activityData);
+        }
+
+        return $id;
     }
 
     public function feedExists($feed)
@@ -31,50 +39,41 @@ class FeedModel
         return (bool) $this->client->exists($feed);
     }
 
-    public function follow($userId, $target)
+    public function follow($followerFeed, $followeeFeed)
     {
-        return $this->client->sadd("timeline_{$userId}", $target);
+        if ($this->client->sadd("followee_{$followerFeed}", $followeeFeed) == 0) {
+            return false;
+        }
+        if ($this->client->sadd("follower_{$followeeFeed}", $followerFeed) == 0) {
+            return false;
+        }
+
+        return true;
     }
 
-    public function getUser($userId, $count = 25)
+    public function get($feedSlug, $userId, $count = 25, $offset = 0)
     {
-        $stream = "user_{$userId}";
-        $response = $this->redisCommand->xread(
-            [ $stream ],
-            [ '0' ],
-            $count
-        );
+        if ($count === null) {
+            $count = 25;
+        }
+        $count += $offset;
+        $stream = "{$feedSlug}_{$userId}";
+        $response = $this->redisCommand->xrevrange($stream, '+', '-', $count);
 
         $feed = [];
 
-        foreach ($response[$stream] as $id => $dictionary) {
+        $skipCount = 0;
+
+        foreach ($response as $id => $dictionary) {
+
+            if ($skipCount !== $offset) {
+                $skipCount++;
+                continue;
+            }
+
             $feed[] = [
                 'id' => $id,
             ] + $dictionary;
-        }
-
-        return $feed;
-    }
-
-    public function getTimeline($userId, $count = 25)
-    {
-        $targets = $this->client->smembers("timeline_{$userId}");
-
-        if (empty($targets)) {
-            return [];
-        }
-
-        $ids = array_fill(0, count($targets), '0');
-        $response = $this->redisCommand->xread($targets, $ids, $count);
-
-        $feed = [];
-
-        foreach ($response as $stream => $streamData) {
-            foreach ($streamData as $id => $dictionary) {
-                $feed[] = [
-                    'id' => $id,
-                ] + $dictionary;
-            }
         }
 
         return $feed;

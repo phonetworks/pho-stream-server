@@ -50,21 +50,40 @@ class RedisCommand
 
         $parsedResponse =  array_reduce($response, function ($acc, $streamData) {
             $streamName = $streamData[0];
-            $streamEntries = array_reduce($streamData[1], function ($acc, $entryData) {
-                $entryId = $entryData[0];
-                $dictionaryData = $entryData[1];
-                $dictionary = [];
-                for ($i = 0; $i < count($dictionaryData); $i = $i + 2) {
-                    $dictionary[$dictionaryData[$i]] = $dictionaryData[$i + 1];
-                }
-                return $acc + [
-                    $entryId => $dictionary,
-                ];
-            }, []);
+            $streamEntries = $this->parseStreamEntries($streamData[1]);
             return $acc + [
                 $streamName => $streamEntries,
             ];
         }, []);
+
+        return $parsedResponse;
+    }
+
+    public function parseStreamEntries($entriesData)
+    {
+        return array_reduce($entriesData, function ($acc, $entryData) {
+            $entryId = $entryData[0];
+            $dictionaryData = $entryData[1];
+            $dictionary = [];
+            for ($i = 0; $i < count($dictionaryData); $i = $i + 2) {
+                $dictionary[$dictionaryData[$i]] = $dictionaryData[$i + 1];
+            }
+            return $acc + [
+                $entryId => $dictionary,
+            ];
+        }, []);
+    }
+
+    public function xrevrange($key, $end, $start, $count = null)
+    {
+        $cmdCount = $count ? [ 'COUNT', $count ] : [];
+        $command = array_merge(
+            [ 'XREVRANGE', $key, $end, $start ],
+            $cmdCount
+        );
+
+        $response = $this->client->executeRaw($command);
+        $parsedResponse = $this->parseStreamEntries($response);
 
         return $parsedResponse;
     }

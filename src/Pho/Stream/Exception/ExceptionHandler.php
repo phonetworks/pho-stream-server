@@ -9,9 +9,17 @@ class ExceptionHandler
 {
     public function handle(\Exception $ex)
     {
-        $response = new JsonResponse([
-            'message' => (string) $ex,
-        ], StatusCode::INTERNAL_SERVER_ERROR);
+        switch (get_class($ex)) {
+
+            case ValidationFailedException::class:
+                $response = new JsonResponse($ex->getErrorBag()->toArray(), StatusCode::BAD_REQUEST);
+                break;
+
+            default:
+                $response = new JsonResponse([
+                    'message' => (string) $ex,
+                ], StatusCode::INTERNAL_SERVER_ERROR);
+        }
 
         return $response;
     }

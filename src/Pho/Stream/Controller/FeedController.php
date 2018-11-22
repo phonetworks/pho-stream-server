@@ -2,6 +2,7 @@
 
 namespace Pho\Stream\Controller;
 
+use Pho\Stream\Exception\ValidationFailedException;
 use Pho\Stream\Model\FeedModel;
 use Psr\Http\Message\ServerRequestInterface;
 use Rakit\Validation\Validator;
@@ -30,8 +31,7 @@ class FeedController
         ]);
 
         if ($validation->fails()) {
-            $errors = $validation->errors();
-            return new JsonResponse($errors->toArray(), StatusCode::BAD_REQUEST);
+            throw new ValidationFailedException($validation->errors());
         }
 
         $actor = $body['actor'];
@@ -52,18 +52,17 @@ class FeedController
         return new JsonResponse($res);
     }
 
-    public function follow($user_id, ServerRequestInterface $request)
+    public function follow($feed_slug, $user_id, ServerRequestInterface $request)
     {
         $queryParams = $request->getQueryParams();
 
         $validator = new Validator();
         $validation = $validator->validate($queryParams, [
-            'target' => "required|not_in:user_{$user_id}",
+            'target' => "required|not_in:{$feed_slug}_{$user_id}",
         ]);
 
         if ($validation->fails()) {
-            $errors = $validation->errors();
-            return new JsonResponse($errors->toArray(), StatusCode::BAD_REQUEST);
+            throw new ValidationFailedException($validation->errors());
         }
 
         $target = $queryParams['target'];
@@ -74,47 +73,60 @@ class FeedController
             ], StatusCode::BAD_REQUEST);
         }
 
-        $ret = $this->feedModel->follow($user_id, $target);
+        $ret = $this->feedModel->follow("{$feed_slug}_{$user_id}", $target);
 
         return new JsonResponse([
             'success' => boolval($ret),
         ]);
     }
 
-    public function getUser($user_id, ServerRequestInterface $request)
+    public function get($feed_slug, $user_id, ServerRequestInterface $request)
     {
         $queryParams = $request->getQueryParams();
 
         $validator = new Validator();
         $validation = $validator->validate($queryParams, [
-            'count' => 'integer',
+            'limit' => 'integer',
+            'offset' => 'integer',
         ]);
 
         if ($validation->fails()) {
-            $errors = $validation->errors();
-            return new JsonResponse($errors->toArray(), StatusCode::BAD_REQUEST);
+            throw new ValidationFailedException($validation->errors());
         }
 
-        if (isset($queryParams['count'])) {
+        $limit = null;
+        if (isset($queryParams['limit'])) {
 
-            $count = intval($queryParams['count']);
+            $limit = intval($queryParams['limit']);
 
             $validation = $validator->validate([
-                'count' => $count,
+                'limit' => $limit,
             ], [
-                'count' => 'min:1|max:100',
+                'limit' => 'min:1|max:100',
             ]);
 
             if ($validation->fails()) {
-                $errors = $validation->errors();
-                return new JsonResponse($errors->toArray(), StatusCode::BAD_REQUEST);
+                throw new ValidationFailedException($validation->errors());
             }
+        }
 
-            $feed = $this->feedModel->getUser($user_id, $count);
+        $offset = 0;
+        if (isset($queryParams['offset'])) {
+
+            $offset = intval($queryParams['offset']);
+
+            $validation = $validator->validate([
+                'offset' => $offset,
+            ], [
+                'offset' => 'min:0',
+            ]);
+
+            if ($validation->fails()) {
+                throw new ValidationFailedException($validation->errors());
+            }
         }
-        else {
-            $feed = $this->feedModel->getUser($user_id);
-        }
+
+        $feed = $this->feedModel->get($feed_slug, $user_id, $limit, $offset);
 
         if (is_null($feed)) {
             return new JsonResponse([
@@ -127,14 +139,5 @@ class FeedController
         ];
 
         return new JsonResponse($res);
-    }
-
-    public function getTimeline($user_id, ServerRequestInterface $request)
-    {
-        $feed = $this->feedModel->getTimeline($user_id);
-
-        return new JsonResponse([
-            'results' => $feed,
-        ]);
     }
 }
