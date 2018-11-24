@@ -54,18 +54,19 @@ class FeedController
 
     public function follow($feed_slug, $user_id, ServerRequestInterface $request)
     {
-        $queryParams = $request->getQueryParams();
+        $bodyContents = $request->getBody()->getContents();
+        $bodyContents = json_decode($bodyContents, true);
 
         $validator = new Validator();
-        $validation = $validator->validate($queryParams, [
-            'target' => "required|not_in:{$feed_slug}_{$user_id}",
+        $validation = $validator->validate($bodyContents, [
+            'target' => "required|not_in:{$feed_slug}:{$user_id}",
         ]);
 
         if ($validation->fails()) {
             throw new ValidationFailedException($validation->errors());
         }
 
-        $target = $queryParams['target'];
+        $target = $bodyContents['target'];
 
         if (! $this->feedModel->feedExists($target)) {
             return new JsonResponse([
@@ -73,7 +74,7 @@ class FeedController
             ], StatusCode::BAD_REQUEST);
         }
 
-        $ret = $this->feedModel->follow("{$feed_slug}_{$user_id}", $target);
+        $ret = $this->feedModel->follow("{$feed_slug}:{$user_id}", $target);
 
         return new JsonResponse([
             'success' => boolval($ret),

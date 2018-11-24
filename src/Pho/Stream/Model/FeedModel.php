@@ -24,9 +24,9 @@ class FeedModel
             'object' => $object,
             'text' => $text,
         ];
-        $id = $this->redisCommand->xadd("{$feedSlug}_{$userId}", '*', $activityData);
+        $id = $this->redisCommand->xadd("{$feedSlug}:{$userId}", '*', $activityData);
 
-        $followers = $this->client->smembers("follower_{$feedSlug}_{$userId}");
+        $followers = $this->client->smembers("follower:{$feedSlug}:{$userId}");
         foreach ($followers as $follower) {
             $this->redisCommand->xadd($follower, $id, $activityData);
         }
@@ -41,10 +41,10 @@ class FeedModel
 
     public function follow($followerFeed, $followeeFeed)
     {
-        if ($this->client->sadd("followee_{$followerFeed}", $followeeFeed) == 0) {
+        if ($this->client->sadd("followee:{$followerFeed}", $followeeFeed) == 0) {
             return false;
         }
-        if ($this->client->sadd("follower_{$followeeFeed}", $followerFeed) == 0) {
+        if ($this->client->sadd("follower:{$followeeFeed}", $followerFeed) == 0) {
             return false;
         }
 
@@ -57,7 +57,7 @@ class FeedModel
             $count = 25;
         }
         $count += $offset;
-        $stream = "{$feedSlug}_{$userId}";
+        $stream = "{$feedSlug}:{$userId}";
         $response = $this->redisCommand->xrevrange($stream, '+', '-', $count);
 
         $feed = [];
