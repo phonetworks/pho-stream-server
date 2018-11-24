@@ -16,7 +16,7 @@ class FeedModel
         $this->redisCommand = $redisCommand;
     }
 
-    public function addActivity($userId, $actor, $verb, $object, $text)
+    public function addActivity($feedSlug, $userId, $actor, $verb, $object, $text)
     {
         $activityData = [
             'actor' => $actor,
@@ -24,9 +24,9 @@ class FeedModel
             'object' => $object,
             'text' => $text,
         ];
-        $id = $this->redisCommand->xadd("user_{$userId}", '*', $activityData);
+        $id = $this->redisCommand->xadd("{$feedSlug}_{$userId}", '*', $activityData);
 
-        $followers = $this->client->smembers("follower_user_{$userId}");
+        $followers = $this->client->smembers("follower_{$feedSlug}_{$userId}");
         foreach ($followers as $follower) {
             $this->redisCommand->xadd($follower, $id, $activityData);
         }

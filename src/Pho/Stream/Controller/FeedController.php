@@ -18,7 +18,7 @@ class FeedController
         $this->feedModel = $feedModel;
     }
 
-    public function addActivity($user_id, ServerRequestInterface $request)
+    public function addActivity($feed_slug, $user_id, ServerRequestInterface $request)
     {
         $body = $request->getBody()->getContents();
         $body = json_decode($body, true);
@@ -39,7 +39,7 @@ class FeedController
         $object = $body['object'];
         $text = $body['text'];
 
-        $id = $this->feedModel->addActivity($user_id, $actor, $verb, $object, $text);
+        $id = $this->feedModel->addActivity($feed_slug, $user_id, $actor, $verb, $object, $text);
 
         $res = [
             'id' => $id,

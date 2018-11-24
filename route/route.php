@@ -6,9 +6,9 @@ return function (RouteCollector $r) {
 
     $r->get('/', 'HomeController@index');
 
-    $r->post('/feed/user/{user_id}', 'FeedController@addActivity');
+    $r->post('/feed/{feed_slug}/{user_id}', 'FeedController@addActivity');
 
-    $r->post('/feed/{feed_slug:timeline}/{user_id}/follows', 'FeedController@follow');
+    $r->post('/feed/{feed_slug}/{user_id}/follows', 'FeedController@follow');
 
-    $r->get('/feed/{feed_slug:timeline|user}/{user_id}', 'FeedController@get');
+    $r->get('/feed/{feed_slug}/{user_id}', 'FeedController@get');
 };
