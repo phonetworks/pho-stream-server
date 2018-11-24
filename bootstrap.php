@@ -20,6 +20,7 @@ $container = require 'di/container.php';
  * Load environment variables
  */
 $dotenv = new Dotenv(APP_ROOT);
+$dotenv->load();
 
 
 /**
