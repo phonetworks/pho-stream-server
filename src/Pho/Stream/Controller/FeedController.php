@@ -21,13 +21,14 @@ class FeedController
     public function addActivity($feed_slug, $user_id, ServerRequestInterface $request)
     {
         $body = $request->getBody()->getContents();
-        $body = json_decode($body, true);
+        $body = json_decode($body, true) ?? [];
 
         $validator = new Validator();
         $validation = $validator->validate($body, [
             'actor' => 'required',
             'verb' => 'required',
             'object' => 'required',
+            'time' => 'date:Y-m-d\TH:i:s.u',
         ]);
 
         if ($validation->fails()) {
@@ -37,17 +38,27 @@ class FeedController
         $actor = $body['actor'];
         $verb = $body['verb'];
         $object = $body['object'];
-        $text = $body['text'];
 
-        $id = $this->feedModel->addActivity($feed_slug, $user_id, $actor, $verb, $object, $text);
+        $timeFormat = 'Y-m-d\TH:i:s.v';
+        if (isset($body['time'])) {
+            $time = date($timeFormat, strtotime($body['time']));
+        }
+        else {
+            $time = date($timeFormat, time());
+        }
+        $otherFields = [
+            'time' => $time,
+        ];
+        $otherFields = $otherFields + array_diff_key($body, array_flip(['actor', 'verb', 'object']));
+
+        $id = $this->feedModel->addActivity($feed_slug, $user_id, $actor, $verb, $object, $otherFields);
 
         $res = [
             'id' => $id,
             'actor' => $actor,
             'verb' => $verb,
             'object' => $object,
-            'text' => $text,
-        ];
+        ] + $otherFields;
 
         return new JsonResponse($res);
     }
@@ -55,7 +66,7 @@ class FeedController
     public function follow($feed_slug, $user_id, ServerRequestInterface $request)
     {
         $bodyContents = $request->getBody()->getContents();
-        $bodyContents = json_decode($bodyContents, true);
+        $bodyContents = json_decode($bodyContents, true) ?? [];
 
         $validator = new Validator();
         $validation = $validator->validate($bodyContents, [
