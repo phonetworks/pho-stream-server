@@ -2,6 +2,7 @@
 
 namespace Pho\Stream\Controller;
 
+use Pho\Stream\Authorization;
 use Pho\Stream\Exception\ValidationFailedException;
 use Pho\Stream\Model\FeedModel;
 use Psr\Http\Message\ServerRequestInterface;
@@ -12,14 +13,18 @@ use Zend\Diactoros\Response\JsonResponse;
 class FeedController
 {
     private $feedModel;
+    private $auth;
 
-    public function __construct(FeedModel $feedModel)
+    public function __construct(FeedModel $feedModel, Authorization $authorization)
     {
         $this->feedModel = $feedModel;
+        $this->auth = $authorization;
     }
 
     public function addActivity($feed_slug, $user_id, ServerRequestInterface $request)
     {
+        $this->auth->authorize($feed_slug, $user_id, 'feed', 'write');
+
         $body = $request->getBody()->getContents();
         $body = json_decode($body, true) ?? [];
 
@@ -65,6 +70,8 @@ class FeedController
 
     public function follow($feed_slug, $user_id, ServerRequestInterface $request)
     {
+        $this->auth->authorize($feed_slug, $user_id, 'follower', 'write');
+
         $bodyContents = $request->getBody()->getContents();
         $bodyContents = json_decode($bodyContents, true) ?? [];
 
@@ -94,6 +101,8 @@ class FeedController
 
     public function get($feed_slug, $user_id, ServerRequestInterface $request)
     {
+        $this->auth->authorize($feed_slug, $user_id, 'feed', 'read');
+
         $queryParams = $request->getQueryParams();
 
         $validator = new Validator();

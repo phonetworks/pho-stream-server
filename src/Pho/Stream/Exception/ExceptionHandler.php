@@ -15,6 +15,12 @@ class ExceptionHandler
                 $response = new JsonResponse($ex->getErrorBag()->toArray(), StatusCode::BAD_REQUEST);
                 break;
 
+            case AuthorizationFailedException::class:
+                $response = new JsonResponse([
+                    'message' => $ex->getMessage()
+                ], StatusCode::UNAUTHORIZED);
+                break;
+
             default:
                 $response = new JsonResponse([
                     'message' => (string) $ex,
