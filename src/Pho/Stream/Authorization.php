@@ -1,0 +1,94 @@
+<?php
+
+namespace Pho\Stream;
+
+use Firebase\JWT\BeforeValidException;
+use Firebase\JWT\ExpiredException;
+use Firebase\JWT\JWT;
+use Firebase\JWT\SignatureInvalidException;
+use Pho\Stream\Exception\AppException;
+use Pho\Stream\Exception\AuthorizationFailedException;
+use Psr\Http\Message\ServerRequestInterface;
+
+class Authorization
+{
+    private $request;
+
+    public function __construct(ServerRequestInterface $request)
+    {
+        $this->request = $request;
+    }
+
+    public function signature($value, $secret)
+    {
+        $digest = hash_hmac('sha1', $value, sha1($secret, true), true);
+
+        return trim(strtr(base64_encode($digest), '+/', '-_'), '=');
+    }
+
+    public function decodeToken($token, $secret)
+    {
+        return JWT::decode($token, $secret, [ 'HS256' ]);
+    }
+
+    public function authorize($feedSlug, $userId, $resource, $action)
+    {
+        $queryParams = $this->request->getQueryParams();
+        $streamKey = config('auth.stream_key');
+        $streamSecret = config('auth.stream_secret');
+        $apiKey = $queryParams['api_key'] ?? null;
+        $streamAuthType = $this->request->getHeaderLine('stream-auth-type');
+        $authorization = $this->request->getHeaderLine('Authorization');
+
+        if (! $apiKey) {
+            throw new AuthorizationFailedException('API-Key not provided');
+        }
+
+        if ($streamKey !== $apiKey) {
+            throw new AuthorizationFailedException('Invalid API-Key');
+        }
+
+        if (! $authorization) {
+            throw new AuthorizationFailedException('Invalid Authorization header');
+        }
+
+        switch ($streamAuthType) {
+            case 'jwt':
+                try {
+                    $decoded = $this->decodeToken($authorization, $streamSecret);
+                    $decoded = (array) $decoded;
+                    if (! ($decoded['feed_id'] === "{$feedSlug}{$userId}"
+                        && in_array($decoded['resource'], [ '*', $resource ])
+                        && $decoded['action'] === $action)) {
+                        throw new AuthorizationFailedException('Payload mismatch');
+                    }
+                }
+                catch (\Exception $ex) {
+                    if (($ex instanceof SignatureInvalidException)
+                        || ($ex instanceof BeforeValidException)
+                        || ($ex instanceof ExpiredException)
+                        || ($ex instanceof \UnexpectedValueException)) {
+                        throw new AuthorizationFailedException('Failed to decode JWT token');
+                    }
+                }
+                break;
+
+            case 'simple':
+
+                list($feedId, $token) = sscanf($authorization, '%s %s');
+                if ($feedId && $feedId !== $feedSlug . $userId) {
+                    throw new AuthorizationFailedException('FeedId mismatch');
+                }
+                if ($token) {
+                    $signature = $this->signature($feedSlug . $userId, $streamSecret);
+                    if ($signature !== $token) {
+                        throw new AuthorizationFailedException('Invalid token exception');
+                    }
+                }
+                break;
+
+            default:
+                throw new AppException("Unexpected value of header stream-auth-type: {$streamAuthType}");
+        }
+    }
+}
