@@ -31,25 +31,43 @@ class Authorization
         return JWT::decode($token, $secret, [ 'HS256' ]);
     }
 
+    public function getKey()
+    {
+        return config('auth.stream_key');
+    }
+
+    public function getSecret()
+    {
+        return config('auth.stream_secret');
+    }
+
     public function authorize($feedSlug, $userId, $resource, $action)
     {
         $queryParams = $this->request->getQueryParams();
-        $streamKey = config('auth.stream_key');
-        $streamSecret = config('auth.stream_secret');
+        $streamKey = $this->getKey();
+        $streamSecret = $this->getSecret();
         $apiKey = $queryParams['api_key'] ?? null;
-        $streamAuthType = $this->request->getHeaderLine('stream-auth-type');
+        $streamAuthType = $this->request->getHeaderLine('Stream-Auth-Type');
         $authorization = $this->request->getHeaderLine('Authorization');
 
         if (! $apiKey) {
             throw new AuthorizationFailedException('API-Key not provided');
         }
 
-        if ($streamKey !== $apiKey) {
-            throw new AuthorizationFailedException('Invalid API-Key');
-        }
-
         if (! $authorization) {
             throw new AuthorizationFailedException('Invalid Authorization header');
+        }
+
+        if (! $streamAuthType) {
+            throw new AuthorizationFailedException('Invalid Stream-Auth-Type header');
+        }
+
+        if (! in_array($streamAuthType, [ 'jwt', 'simple' ])) {
+            throw new AuthorizationFailedException("Unexpected value of header stream-auth-type: {$streamAuthType}");
+        }
+
+        if ($streamKey !== $apiKey) {
+            throw new AuthorizationFailedException('Invalid API-Key');
         }
 
         switch ($streamAuthType) {
@@ -70,25 +88,27 @@ class Authorization
                         || ($ex instanceof \UnexpectedValueException)) {
                         throw new AuthorizationFailedException('Failed to decode JWT token');
                     }
+                    else {
+                        throw $ex;
+                    }
                 }
                 break;
 
             case 'simple':
 
-                list($feedId, $token) = sscanf($authorization, '%s %s');
-                if ($feedId && $feedId !== $feedSlug . $userId) {
+                if (! preg_match('/(^[^ ]+) ([^ ]+$)/', $authorization, $matches)) {
+                    throw new AuthorizationFailedException('Invalid authorization');
+                }
+                $feedId = $matches[1];
+                $token = $matches[2];
+                if ($feedId !== $feedSlug . $userId) {
                     throw new AuthorizationFailedException('FeedId mismatch');
                 }
-                if ($token) {
-                    $signature = $this->signature($feedSlug . $userId, $streamSecret);
-                    if ($signature !== $token) {
-                        throw new AuthorizationFailedException('Invalid token exception');
-                    }
+                $signature = $this->signature($feedSlug . $userId, $streamSecret);
+                if ($signature !== $token) {
+                    throw new AuthorizationFailedException('Invalid token exception');
                 }
                 break;
-
-            default:
-                throw new AppException("Unexpected value of header stream-auth-type: {$streamAuthType}");
         }
     }
 }
