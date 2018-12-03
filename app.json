@@ -1,0 +1,21 @@
+{
+    "name": "Pho-Stream-Server",
+    "description": "A GetStream compatible stream server written in PHP",
+    "repository": "https://github.com/phonetworks/pho-stream-server",
+    "env": {
+        "REDIS_URI": {
+            "description": "A streams compatible Redis 5+ server.",
+            "required": true
+        },
+        "AUTH_STREAM_KEY": {
+            "description": "A random key",
+            "required": true,
+            "generator": "secret"
+        },
+        "AUTH_STREAM_SECRET": {
+            "description": "A random key",
+            "required": true,
+            "generator": "secret"
+        }
+    }
+}
