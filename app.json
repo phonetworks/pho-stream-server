@@ -16,6 +16,10 @@
             "description": "A random key",
             "required": true,
             "generator": "secret"
+        },
+        "RUNNING_ON_HEROKU": {
+            "required": true,
+            "value": true
         }
     }
 }

@@ -19,9 +19,10 @@ $container = require 'di/container.php';
 /**
  * Load environment variables
  */
-$dotenv = new Dotenv(APP_ROOT);
-$dotenv->load();
-
+if(!getenv("RUNNING_ON_HEROKU")) {
+    $dotenv = new Dotenv(APP_ROOT);
+    $dotenv->load();
+}
 
 /**
  * Routes
