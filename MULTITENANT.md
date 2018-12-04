@@ -8,7 +8,6 @@ Changed files:
 ### app.json
 * modified to reflect the new .env variable
 
-
 ### config/auth.php
 * added ```config('auth.secret_key')```
 

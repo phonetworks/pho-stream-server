@@ -26,7 +26,7 @@ return [
             $client = new Client($uri);
             $_ = $client->get($_REQUEST["api_key"]);
             if(!empty($_)) {
-                $client = new Client($uri."?".$_);
+                $client = new Client($uri."?database=".$_);
             }
         }
         elseif ($uri) {
