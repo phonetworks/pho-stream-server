@@ -44,8 +44,6 @@ class Authorization
     public function authorize($feedSlug, $userId, $resource, $action)
     {
         $queryParams = $this->request->getQueryParams();
-        $streamKey = $this->getKey();
-        $streamSecret = $this->getSecret();
         $apiKey = $queryParams['api_key'] ?? null;
         $streamAuthType = $this->request->getHeaderLine('Stream-Auth-Type');
         $authorization = $this->request->getHeaderLine('Authorization');
@@ -53,6 +51,13 @@ class Authorization
         if (! $apiKey) {
             throw new AuthorizationFailedException('API-Key not provided');
         }
+
+        if ( strlen($apiKey) != 36 ) {
+            throw new AuthorizationFailedException('Invalid API-Key');
+        }
+
+        $streamKey = $apiKey;
+        $streamSecret = md5(password_hash(strtoupper($streamKey), PASSWORD_BCRYPT, ["salt"=>config('auth.secret_key')]));
 
         if (! $authorization) {
             throw new AuthorizationFailedException('Invalid Authorization header');

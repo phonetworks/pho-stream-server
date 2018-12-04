@@ -21,7 +21,15 @@ return [
 
     Client::class => function () {
         $uri = config('redis.uri');
-        if ($uri) {
+        // multitenant case
+        if(isset($_REQUEST["api_key"])) {
+            $client = new Client($uri);
+            $_ = $client->get($_REQUEST["api_key"]);
+            if(!empty($_)) {
+                $client = new Client($uri."?".$_);
+            }
+        }
+        elseif ($uri) {
             $client = new Client($uri);
         }
         else {

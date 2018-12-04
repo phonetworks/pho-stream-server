@@ -3,6 +3,10 @@
     "description": "A GetStream compatible stream server written in PHP",
     "repository": "https://github.com/phonetworks/pho-stream-server",
     "env": {
+        "SECRET_KEY": {
+            "description": "a secret key for multitenant key/secret generation",
+            "required": true
+        },
         "REDIS_URI": {
             "description": "A streams compatible Redis 5+ server.",
             "required": true
