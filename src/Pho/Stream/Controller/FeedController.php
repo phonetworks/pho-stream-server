@@ -86,11 +86,13 @@ class FeedController
 
         $target = $bodyContents['target'];
 
+        /*
         if (! $this->feedModel->feedExists($target)) {
             return new JsonResponse([
                 'target' => "Invalid target {$target}",
             ], StatusCode::BAD_REQUEST);
         }
+        */
 
         $ret = $this->feedModel->follow("{$feed_slug}:{$user_id}", $target);
 
