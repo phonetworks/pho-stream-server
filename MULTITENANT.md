@@ -17,3 +17,6 @@ Changed files:
 ### src/Pho/Stream/Authorization.php
 * Where real magic happens. App key/secret matching.
 
+### src/Pho/Stream/Controller/FeedController.php
+*  feedExists no longer checked in follow
+
