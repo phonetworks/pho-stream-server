@@ -9,6 +9,7 @@ use Pho\Stream\Exception\ExceptionHandler;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Teapot\StatusCode;
+use Zend\Diactoros\Response\EmptyResponse;
 use Zend\Diactoros\Response\JsonResponse;
 
 class RequestHandler
@@ -44,6 +45,9 @@ class RequestHandler
 
                 case Dispatcher::METHOD_NOT_ALLOWED:
                     $response = $container->call(function (ServerRequestInterface $request, ResponseInterface $response) {
+                        if ($request->getMethod() === 'OPTIONS') {
+                            return new EmptyResponse();
+                        }
                         $response = new JsonResponse([
                             'message' => 'Method Not Allowed',
                         ], StatusCode::METHOD_NOT_ALLOWED);
