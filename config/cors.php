@@ -9,7 +9,8 @@ return [
             'Content-Type',
             'Accept',
             'Authorization',
-            'Stream-Auth-Type'
+            'Stream-Auth-Type',
+            'X-Stream-Client'
         ]
     )),
     'allowed_methods' => env('CORS_ALLOWED_METHODS', join(',',
