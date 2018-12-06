@@ -28,6 +28,10 @@ class RequestHandler
         $httpMethod = $_SERVER['REQUEST_METHOD'];
         $path = defined('PATH_INFO') ? PATH_INFO : ( $_SERVER['PATH_INFO'] ?? '/' );
 
+        if ($httpMethod === 'OPTIONS') {
+            return new EmptyResponse();
+        }
+
         $routeInfo = $dispatcher->dispatch($httpMethod, $path);
 
         try {
@@ -45,9 +49,6 @@ class RequestHandler
 
                 case Dispatcher::METHOD_NOT_ALLOWED:
                     $response = $container->call(function (ServerRequestInterface $request, ResponseInterface $response) {
-                        if ($request->getMethod() === 'OPTIONS') {
-                            return new EmptyResponse();
-                        }
                         $response = new JsonResponse([
                             'message' => 'Method Not Allowed',
                         ], StatusCode::METHOD_NOT_ALLOWED);
